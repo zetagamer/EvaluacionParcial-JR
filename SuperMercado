@@ -1,0 +1,180 @@
+using System;
+using System.Collections.Generic;
+
+namespace SuperMercado
+{
+    // Interface para productos
+    public interface IPay
+    {
+        decimal ValueToPay { get; }
+    }
+
+    // Clase abstracta para productos
+    public abstract class Product : IPay
+    {
+        public string Description { get; set; }
+        public int Id { get; set; }
+        public decimal Price { get; set; }
+        public float Tax { get; set; }
+
+        public abstract decimal ValueToPay { get; }
+
+        public override string ToString()
+        {
+            return $"{Id} {Description}\n" +
+                   $"       Price......:   ${Price:N2}\n" +
+                   $"       Tax........:        {Tax:P2}\n" +
+                   $"       Value......:   ${ValueToPay:N2}";
+        }
+    }
+
+    // Clase para productos de precio fijo
+    public class FixedPriceProduct : Product
+    {
+        public override decimal ValueToPay => Price * (1 + Tax);
+    }
+
+    // Clase para productos de precio variable
+    public class VariablePriceProduct : Product
+    {
+        public string Measurement { get; set; }
+        public float Quantity { get; set; }
+
+        public override decimal ValueToPay => Price * Quantity * (1 + Tax);
+
+        public override string ToString()
+        {
+            return base.ToString() +
+                   $"       Measurement: {Measurement}\n" +
+                   $"       Quantity...:         {Quantity:N2}";
+        }
+    }
+
+    // Clase para productos compuestos
+    public class ComposedProduct : Product
+    {
+        public float Discount { get; set; }
+        public List<Product> Products { get; set; }
+
+        public override decimal ValueToPay
+        {
+            get
+            {
+                decimal totalValue = 0;
+                foreach (var product in Products)
+                {
+                    totalValue += product.ValueToPay;
+                }
+                return totalValue * (1 - Discount);
+            }
+        }
+
+        public override string ToString()
+        {
+            string productList = string.Join(", ", Products);
+            return base.ToString() +
+                   $"       Products...: {productList}\n" +
+                   $"       Discount...:        {Discount:P2}";
+        }
+    }
+
+    // Clase para la factura
+    public class Invoice
+    {
+        private List<Product> _products = new List<Product>();
+
+        public void AddProduct(Product product)
+        {
+            _products.Add(product);
+        }
+
+        public override string ToString()
+        {
+            string receipt = "RECEIPT\n" +
+                           "-------------------------------------------------\n";
+            decimal totalValue = 0;
+
+            foreach (var product in _products)
+            {
+                receipt += product.ToString() + "\n";
+                totalValue += product.ValueToPay;
+            }
+
+            return receipt +
+                   $"                   =============\n" +
+                   $"TOTAL:               ${totalValue:N2}";
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Crear productos
+            Product product1 = new FixedPriceProduct()
+            {
+                Description = "Pan",
+                Id = 1010,
+                Price = 46000M,
+                Tax = 0.19F
+            };
+
+            Product product2 = new FixedPriceProduct()
+            {
+                Description = "leche",
+                Id = 2020,
+                Price = 1560M,
+                Tax = 0.19F
+            };
+
+            Product product3 = new VariablePriceProduct()
+            {
+                Description = "Carne",
+                Id = 3030,
+                Measurement = "Kilo",
+                Price = 32000M,
+                Quantity = 0.536F,
+                Tax = 0.19F
+            };
+
+            Product product4 = new VariablePriceProduct()
+            {
+                Description = "Naranjas",
+                Id = 4040,
+                Measurement = "Kilo",
+                Price = 18000M,
+                Quantity = 0.389F,
+                Tax = 0.19F
+            };
+
+            Product product5 = new ComposedProduct()
+            {
+                Description = "Gaseosa",
+                Discount = 0.12F,
+                Id = 5050,
+                Products = new List<Product>() { product1, product2, product3, product4 }
+            };
+
+            // Mostrar productos
+            Console.WriteLine("PRODUCTS\n" +
+                              "-------------------------------------------------\n");
+            Console.WriteLine(product1);
+            Console.WriteLine(product2);
+            Console.WriteLine(product3);
+            Console.WriteLine(product4);
+            Console.WriteLine(product5);
+            Console.WriteLine();
+
+            // Crear factura
+            Invoice invoice = new Invoice();
+            invoice.AddProduct(product1);
+            invoice.AddProduct(product3);
+            invoice.AddProduct(product5);
+
+            // Mostrar factura
+            Console.WriteLine(invoice);
+
+            Console.ReadKey();
+        }
+    }
+}
